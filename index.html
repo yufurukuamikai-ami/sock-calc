@@ -137,10 +137,11 @@
       </div>
 
       <div class="btnrow">
-        <button class="btn" id="calcBtn">📊 計算する</button>
+        <button class="btn" id="calcBtn" type="button">📊 計算する</button>
         <button class="btn2" id="copyBugBtn" type="button">🐛 不具合報告用にコピー</button>
       </div>
       <div class="muted" id="copyMsg" style="margin-top:8px;"></div>
+      <div class="muted" id="errBox" style="margin-top:6px;color:#b00020;font-weight:700;"></div>
     </div>
 
     <div class="card" style="margin-top:14px;">
@@ -151,7 +152,7 @@
   </div>
 
 <script>
-  const VERSION = 'v0.4 (2026-01-20)';
+  const VERSION = 'v0.5 (2026-01-20)';
 
   const yarnGauges = {
     'ultra-fine': { stitches: 32, rows: 42, needleRange: '0〜2号', name:'超極細（レース糸）' },
@@ -365,6 +366,23 @@
     setGaugeHint();
   }
 
+  function safeCompute(){
+    try{
+      const box = document.getElementById('errBox');
+      if (box) box.textContent = '';
+      compute();
+    } catch(e){
+      const msg = (e && (e.stack || e.message)) ? String(e.stack || e.message) : String(e);
+      const short = msg.split('
+')[0];
+      const box = document.getElementById('errBox');
+      if (box) box.textContent = 'エラー：' + short + '（🐛不具合報告用にコピー を押して送ってください）';
+      window.__lastDebug = window.__lastDebug || { VERSION: VERSION, device: navigator.userAgent, inputs:{}, derived:{} };
+      window.__lastDebug.error = msg;
+      console.error(e);
+    }
+  }
+
 </script>
 <script>
   // separate script block so we can keep python-free in above
@@ -381,6 +399,7 @@
     lines.push('--- 入力 ---');
     for (const [k,v] of Object.entries(d.inputs)) lines.push(`${k}: ${v}`);
     lines.push('--- 計算 ---');
+    if (d.error) { lines.push('--- エラー ---'); lines.push(String(d.error)); }
     for (const [k,v] of Object.entries(d.derived)) lines.push(`${k}: ${v}`);
     lines.push('--- 症状 ---');
     lines.push('ここに「何をしたらどうなったか」を1〜2行で書いてください');
@@ -401,23 +420,25 @@
     document.getElementById('useCustom').addEventListener('change', ()=>{
       document.getElementById('customBox').classList.toggle('hide', !document.getElementById('useCustom').checked);
       setGaugeHint();
-      compute();
+      safeCompute();
     });
-    document.getElementById('yarnWeight').addEventListener('change', ()=>{ setGaugeHint(); compute(); });
-    document.querySelectorAll('input[name="sockType"]').forEach(el=>el.addEventListener('change', ()=>{ toggleUtsuboSettings(); compute(); }));
-    document.querySelectorAll('input[name="method"]').forEach(el=>el.addEventListener('change', ()=>compute()));
+    document.getElementById('yarnWeight').addEventListener('change', ()=>{ setGaugeHint(); safeCompute(); });
+    document.querySelectorAll('input[name="sockType"]').forEach(el=>el.addEventListener('change', ()=>{ toggleUtsuboSettings(); safeCompute(); }));
+    document.querySelectorAll('input[name="method"]').forEach(el=>el.addEventListener('change', ()=>safeCompute()));
 
+    let t = null;
+    const queue = ()=>{ clearTimeout(t); t=setTimeout(()=>safeCompute(), 50); };
     ['footLength','ankleCirc','cuffLength','gSt','gRow','utsuboGussetPerSide','utsuboDoublePerSide'].forEach(id=>{
       const el=document.getElementById(id);
-      if (el) el.addEventListener('input', ()=>{});
+      if (el) el.addEventListener('input', queue);
     });
 
-    document.getElementById('calcBtn').addEventListener('click', compute);
+    document.getElementById('calcBtn').addEventListener('click', safeCompute);
     document.getElementById('copyBugBtn').addEventListener('click', copyBugReport);
 
     toggleUtsuboSettings();
     setGaugeHint();
-    compute();
+    safeCompute();
   }
 
   init();
