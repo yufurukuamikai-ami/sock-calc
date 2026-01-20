@@ -1,4 +1,4 @@
-靴下編み計算機（オフライン版）
+靴下編み計算機（オンライン版）
 
 使い方
 1) sock-knitting-calculator-offline.html をダブルクリックして開きます。
