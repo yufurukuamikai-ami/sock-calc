@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>靴下編み計算機（オフライン）</title>
+  <style>
+    :root{--bg:#fafafa;--card:#fff;--text:#222;--muted:#666;--b:#e5e5e5;--r:14px;}
+    body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;background:var(--bg);color:var(--text);}
+    .wrap{max-width:920px;margin:0 auto;padding:16px;}
+    .header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+    h1{font-size:22px;margin:0;}
+    .badge{display:inline-block;font-size:12px;border:1px solid var(--b);padding:2px 8px;border-radius:999px;color:var(--muted);}
+    .card{background:var(--card);border:1px solid var(--b);border-radius:var(--r);padding:14px;box-shadow:0 1px 6px rgba(0,0,0,.04);}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+    @media (max-width:720px){.grid{grid-template-columns:1fr;}}
+    label{display:block;font-size:13px;color:#333;margin:0 0 6px;}
+    input,select{width:100%;padding:10px 12px;border:1px solid var(--b);border-radius:12px;font-size:16px;box-sizing:border-box;background:#fff;}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+    .radio{display:flex;align-items:center;gap:6px;font-size:14px;}
+    .radio input{width:auto;}
+    .muted{color:var(--muted);font-size:12px;line-height:1.4;}
+    .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+    button{border:0;border-radius:14px;padding:12px 14px;font-size:16px;font-weight:700;cursor:pointer;}
+    .btn{background:#111;color:#fff;}
+    .btn2{background:#f3f3f3;color:#111;border:1px solid var(--b);}
+    .steps{display:grid;gap:10px;margin-top:12px;}
+    .step{border:1px solid var(--b);border-radius:14px;padding:12px;background:#fff;}
+    .step h3{margin:0 0 6px;font-size:16px;}
+    .big{font-size:18px;font-weight:900;}
+    .kpi{display:flex;gap:10px;flex-wrap:wrap;}
+    .kpi span{display:inline-block;background:#f6f6f6;border:1px solid var(--b);border-radius:999px;padding:6px 10px;font-size:13px;}
+    .hide{display:none;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>靴下編み計算機（オフライン版） <span class="badge" id="versionBadge">v0.4</span></h1>
+      <div class="muted">スマホでもOK：ファイルを開くだけで使えます</div>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label for="footLength">足の長さ（cm）</label>
+          <input id="footLength" type="number" min="10" max="35" step="0.5" value="24" />
+        </div>
+        <div>
+          <label for="ankleCirc">足首周り（cm）</label>
+          <input id="ankleCirc" type="number" min="10" max="40" step="0.5" value="20" />
+        </div>
+        <div>
+          <label for="cuffLength">長さ（履き口）（cm）</label>
+          <input id="cuffLength" type="number" min="1" max="30" step="0.5" value="6" />
+          <div class="muted" style="margin-top:6px;">※ゴム編み部分の長さ（お好みで変更OK）</div>
+        </div>
+        <div>
+          <label for="yarnWeight">毛糸の太さ（標準ゲージ）</label>
+          <select id="yarnWeight">
+            <option value="ultra-fine">超極細（レース糸）</option>
+            <option value="super-fine" selected>極細（靴下用など）</option>
+            <option value="fine">合細</option>
+            <option value="light">中細</option>
+            <option value="medium">合太</option>
+            <option value="bulky">並太</option>
+            <option value="super-bulky">極太</option>
+            <option value="jumbo">超極太</option>
+          </select>
+          <div class="muted" id="gaugeHint" style="margin-top:6px;"></div>
+        </div>
+        <div>
+          <label for="needleSize">編み針（号）</label>
+          <select id="needleSize">
+            <option value="0">0号 (2.0mm)</option>
+            <option value="1">1号 (2.1mm)</option>
+            <option value="2">2号 (2.3mm)</option>
+            <option value="2.5" selected>2.5号 (2.5mm)</option>
+            <option value="3">3号 (2.7mm)</option>
+            <option value="4">4号 (3.0mm)</option>
+            <option value="5">5号 (3.3mm)</option>
+            <option value="6">6号 (3.6mm)</option>
+            <option value="7">7号 (3.9mm)</option>
+            <option value="8">8号 (4.2mm)</option>
+            <option value="9">9号 (4.5mm)</option>
+            <option value="10">10号 (4.8mm)</option>
+            <option value="12">12号 (5.4mm)</option>
+            <option value="15">15号 (6.6mm)</option>
+          </select>
+        </div>
+        <div>
+          <label>靴下の形</label>
+          <div class="row">
+            <label class="radio"><input type="radio" name="sockType" value="standard" checked>標準</label>
+            <label class="radio"><input type="radio" name="sockType" value="utsubo">ウツボ（マチ＋ダブル目）</label>
+          </div>
+        </div>
+      </div>
+
+      <div id="utsuboSettings" class="card" style="margin-top:12px; display:none;">
+        <div class="row" style="justify-content:space-between;">
+          <div style="font-weight:800;">ウツボ設定</div>
+          <div class="muted" id="utsuboAutoHint"></div>
+        </div>
+        <div class="grid" style="margin-top:10px;">
+          <div>
+            <label for="utsuboGussetPerSide">マチ（片側）目数</label>
+            <input id="utsuboGussetPerSide" type="number" min="1" max="30" value="5" />
+          </div>
+          <div>
+            <label for="utsuboDoublePerSide">かかと（ダブル目）片側回数</label>
+            <input id="utsuboDoublePerSide" type="number" min="1" max="40" value="8" />
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <label>編み方</label>
+        <div class="row">
+          <label class="radio"><input type="radio" name="method" value="toe" checked>つま先から</label>
+          <label class="radio"><input type="radio" name="method" value="cuff">履き口から</label>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <label class="radio"><input id="useCustom" type="checkbox"> 実測ゲージを入力する（より正確）</label>
+        <div id="customBox" class="grid hide" style="margin-top:10px;">
+          <div>
+            <label for="gSt">ゲージ 10cm = 目数</label>
+            <input id="gSt" type="number" min="10" max="60" value="28" />
+          </div>
+          <div>
+            <label for="gRow">ゲージ 10cm = 段数</label>
+            <input id="gRow" type="number" min="10" max="80" value="36" />
+          </div>
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn" id="calcBtn">📊 計算する</button>
+        <button class="btn2" id="copyBugBtn" type="button">🐛 不具合報告用にコピー</button>
+      </div>
+      <div class="muted" id="copyMsg" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="kpi" id="summary"></div>
+      <div class="steps" id="steps"></div>
+      <div class="muted" style="margin-top:10px;">※計算は目安です。糸・針・好みで微調整してください。</div>
+    </div>
+  </div>
+
+<script>
+  const VERSION = 'v0.4 (2026-01-20)';
+
+  const yarnGauges = {
+    'ultra-fine': { stitches: 32, rows: 42, needleRange: '0〜2号', name:'超極細（レース糸）' },
+    'super-fine': { stitches: 28, rows: 36, needleRange: '1〜3号', name:'極細（靴下用など）' },
+    'fine': { stitches: 24, rows: 32, needleRange: '2〜4号', name:'合細' },
+    'light': { stitches: 22, rows: 28, needleRange: '3〜5号', name:'中細' },
+    'medium': { stitches: 20, rows: 26, needleRange: '4〜6号', name:'合太' },
+    'bulky': { stitches: 18, rows: 24, needleRange: '6〜8号', name:'並太' },
+    'super-bulky': { stitches: 14, rows: 20, needleRange: '8〜10号', name:'極太' },
+    'jumbo': { stitches: 10, rows: 14, needleRange: '10〜15号', name:'超極太' }
+  };
+
+  const $ = (id)=>document.getElementById(id);
+  const getRadioValue = (name)=> (document.querySelector(`input[name="${name}"]:checked`)||{}).value;
+
+  function clampNum(v, min, max){
+    if (Number.isNaN(v)) return min;
+    return Math.max(min, Math.min(max, v));
+  }
+
+  function makeEven(n){
+    n = Math.round(n);
+    return (n % 2 === 0) ? n : n + 1;
+  }
+
+  function suggestUtsuboParams(totalSt){
+    const gussetPerSide = Math.max(3, Math.round(totalSt * 0.09));
+    const doublePerSide = Math.max(6, Math.round(totalSt * 0.14));
+    return { gussetPerSide, doublePerSide };
+  }
+
+  function toggleUtsuboSettings(){
+    const isUtsubo = getRadioValue('sockType') === 'utsubo';
+    $('utsuboSettings').style.display = isUtsubo ? 'block' : 'none';
+  }
+
+  function setGaugeHint(){
+    const useCustom = $('useCustom').checked;
+    const yarnWeight = $('yarnWeight').value;
+    const g = yarnGauges[yarnWeight];
+    const stitches = useCustom ? clampNum(parseFloat($('gSt').value), 10, 60) : g.stitches;
+    const rows = useCustom ? clampNum(parseFloat($('gRow').value), 10, 80) : g.rows;
+    $('gaugeHint').textContent = `ゲージ：10cm = ${stitches}目 × ${rows}段（推奨針：${g.needleRange}）`;
+  }
+
+  function compute(){
+    const footLength = clampNum(parseFloat($('footLength').value), 10, 35);
+    const ankleCirc = clampNum(parseFloat($('ankleCirc').value), 10, 40);
+    const cuffLength = clampNum(parseFloat($('cuffLength').value), 1, 30);
+
+    const yarnWeight = $('yarnWeight').value;
+    const useCustom = $('useCustom').checked;
+    const method = getRadioValue('method');
+    const sockType = getRadioValue('sockType');
+    const isUtsubo = sockType === 'utsubo';
+
+    const gStd = yarnGauges[yarnWeight];
+    const stitches10 = useCustom ? clampNum(parseFloat($('gSt').value), 10, 60) : gStd.stitches;
+    const rows10 = useCustom ? clampNum(parseFloat($('gRow').value), 10, 80) : gStd.rows;
+
+    const stitchesPerCm = stitches10 / 10;
+    const rowsPerCm = rows10 / 10;
+
+    // 作り目（4の倍数）
+    const castOn = Math.round(ankleCirc * stitchesPerCm / 4) * 4;
+
+    // ウツボは足首周りを少し絞る想定（目安）
+    const utsuboAnkleCirc = isUtsubo ? ankleCirc * 0.7 : ankleCirc;
+    const utsuboCastOn = isUtsubo ? Math.round(utsuboAnkleCirc * stitchesPerCm / 4) * 4 : castOn;
+
+    const totalSt = isUtsubo ? utsuboCastOn : castOn;
+
+    // つま先開始（toe-up）は偶数
+    let toeCastOnStart = Math.round(totalSt / 4);
+    toeCastOnStart = makeEven(toeCastOnStart);
+
+    // かかと（標準）
+    const heelStitches = totalSt / 2;
+    const heelFlapRows = Math.round(heelStitches);
+    const heelTurnRows = Math.round(heelStitches / 3);
+
+    // 甲（足の長さの約2/3を目安）
+    const footLength67 = footLength * 0.67;
+    const footRows = Math.round(footLength67 * rowsPerCm);
+    const footCm = Math.round(footLength67);
+
+    // 履き口
+    const cuffRows = Math.max(1, Math.round(cuffLength * rowsPerCm));
+    const cuffCm = Math.max(1, Math.round(cuffRows / rowsPerCm));
+
+    // つま先減らし（目安：5cm）
+    const toeRows = Math.max(1, Math.round(5 * rowsPerCm));
+
+    // マチ拾い目（標準のガゼットの目安）
+    const gussetPickup = Math.round(heelFlapRows / 2);
+
+    // ウツボ設定
+    const utsuboSuggested = suggestUtsuboParams(totalSt);
+    let utsuboGussetPerSide = 0;
+    let utsuboDoublePerSide = 0;
+    if (isUtsubo){
+      utsuboGussetPerSide = parseInt($('utsuboGussetPerSide').value,10);
+      utsuboDoublePerSide = parseInt($('utsuboDoublePerSide').value,10);
+      if (!Number.isFinite(utsuboGussetPerSide) || utsuboGussetPerSide<=0){
+        utsuboGussetPerSide = utsuboSuggested.gussetPerSide;
+        $('utsuboGussetPerSide').value = String(utsuboGussetPerSide);
+      }
+      if (!Number.isFinite(utsuboDoublePerSide) || utsuboDoublePerSide<=0){
+        utsuboDoublePerSide = utsuboSuggested.doublePerSide;
+        $('utsuboDoublePerSide').value = String(utsuboDoublePerSide);
+      }
+      $('utsuboAutoHint').textContent = `目安：マチ片側${utsuboSuggested.gussetPerSide}目／ダブル目片側${utsuboSuggested.doublePerSide}回`;
+    } else {
+      $('utsuboAutoHint').textContent = '';
+    }
+
+    // summary
+    $('summary').innerHTML = [
+      `糸：${gStd.name}`,
+      `ゲージ：10cm=${stitches10}目×${rows10}段${useCustom?'(実測)':''}`,
+      `形：${isUtsubo?'ウツボ（マチ＋ダブル目）':'標準'}`,
+      `編み方：${method==='toe'?'つま先から':'履き口から'}`,
+      `作り目：${totalSt}目`
+    ].map(s=>`<span>${s}</span>`).join('');
+
+    const steps = [];
+
+    if (method==='toe'){
+      steps.push({
+        t:'1. つま先',
+        b:[`作り目：<span class="big">${toeCastOnStart}目</span>（偶数）から開始`, `増し目段数：<span class="big">約${toeRows}段</span>（目標：${totalSt}目）`]
+      });
+
+      steps.push({
+        t:'2. 足の甲',
+        b:[`目数：<span class="big">${totalSt}目</span>`, `段数：<span class="big">約${footRows}段</span>（約<span class="big">${footCm}cm</span>）`]
+      });
+
+      if (!isUtsubo){
+        steps.push({
+          t:'3. かかと',
+          b:[`かかと目数：<span class="big">${heelStitches}目</span>`, `ショートロウ：<span class="big">約${heelTurnRows}段</span>`]
+        });
+        steps.push({
+          t:'4. 長さ（履き口）',
+          b:[`目数：<span class="big">${totalSt}目</span>`, `段数：<span class="big">約${cuffRows}段</span>（約<span class="big">${cuffCm}cm</span>）`, `<span class="muted">※ゴム編みなどで編んで伏せ止め</span>`]
+        });
+      } else {
+        const gussetTotal = utsuboGussetPerSide*2;
+        const heelWorkSt = heelStitches + gussetTotal;
+        const doubleTotal = utsuboDoublePerSide*2;
+        steps.push({
+          t:'3. マチ（ガゼット）',
+          b:[`増し目：片側<span class="big">${utsuboGussetPerSide}目</span>（合計<span class="big">${gussetTotal}目</span>）`, `<span class="muted">※左右で増やしてマチを作ります</span>`]
+        });
+        steps.push({
+          t:'4. かかと（ダブル目）',
+          b:[`かかと範囲：<span class="big">${heelWorkSt}目</span>（かかと側${heelStitches} + マチ${gussetTotal}）`, `ダブル目：片側<span class="big">${utsuboDoublePerSide}回</span>（合計<span class="big">${doubleTotal}個</span>）`, `<span class="muted">※かかと後、マチは減らして${totalSt}目に戻します</span>`]
+        });
+        steps.push({
+          t:'5. 長さ（履き口）',
+          b:[`目数：<span class="big">${totalSt}目</span>`, `段数：<span class="big">約${cuffRows}段</span>（約<span class="big">${cuffCm}cm</span>）`, `<span class="muted">※ゴム編みなどで編んで伏せ止め</span>`]
+        });
+      }
+    } else {
+      steps.push({
+        t:'1. 長さ（履き口）・足首',
+        b:[`作り目：<span class="big">${totalSt}目</span>`, `段数：<span class="big">約${cuffRows}段</span>（約<span class="big">${cuffCm}cm</span>）`, `<span class="muted">※ゴム編みなどで編みます</span>`]
+      });
+
+      if (!isUtsubo){
+        steps.push({
+          t:'2. かかと',
+          b:[`かかとフラップ：<span class="big">${heelStitches}目 × ${heelFlapRows}段</span>`, `かかとターン：<span class="big">約${heelTurnRows}段</span>`, `<span class="muted">※往復編み</span>`]
+        });
+        steps.push({
+          t:'3. マチ（ガゼット）',
+          b:[`拾い目：両端から各<span class="big">${gussetPickup}目</span>`, `<span class="muted">※減らし目で元の目数に戻します</span>`]
+        });
+      } else {
+        const gussetTotal = utsuboGussetPerSide*2;
+        const heelWorkSt = heelStitches + gussetTotal;
+        const doubleTotal = utsuboDoublePerSide*2;
+        steps.push({
+          t:'2. かかと（ウツボ：マチ＋ダブル目）',
+          b:[`マチ：片側<span class="big">${utsuboGussetPerSide}目</span>（合計<span class="big">${gussetTotal}目</span>）`, `ダブル目：片側<span class="big">${utsuboDoublePerSide}回</span>（合計<span class="big">${doubleTotal}個</span>）`, `<span class="muted">※かかと範囲は「${heelWorkSt}目」が目安</span>`]
+        });
+      }
+
+      steps.push({
+        t:`${isUtsubo?3:4}. 足の甲`,
+        b:[`目数：<span class="big">${totalSt}目</span>`, `段数：<span class="big">約${footRows}段</span>（約<span class="big">${footCm}cm</span>）`]
+      });
+
+      steps.push({
+        t:`${isUtsubo?4:5}. つま先`,
+        b:[`減らし目段数：<span class="big">約${toeRows}段</span>`, `<span class="muted">※両端で減らし目をして閉じます</span>`]
+      });
+    }
+
+    $('steps').innerHTML = steps.map(s=>`<div class="step"><h3>${s.t}</h3>${s.b.map(x=>`<div>${x}</div>`).join('')}</div>`).join('');
+
+    // store last computed for bug report
+    window.__lastDebug = {
+      VERSION,
+      device: navigator.userAgent,
+      inputs: {footLength, ankleCirc, cuffLength, yarnWeight, useCustom, stitches10, rows10, method, sockType, totalSt},
+      derived: {toeCastOnStart, footRows, footCm, cuffRows, cuffCm, toeRows, heelStitches, heelFlapRows, heelTurnRows, gussetPickup, utsuboGussetPerSide, utsuboDoublePerSide}
+    };
+
+    setGaugeHint();
+  }
+
+  async function copyBugReport(){
+    const d = window.__lastDebug || null;
+    const msgEl = $('copyMsg');
+    if (!d){
+      msgEl.textContent = '先に「計算する」を押してください。';
+      return;
+    }
+</script>
+<script>
+  // separate script block so we can keep python-free in above
+  async function copyBugReport(){
+    const d = window.__lastDebug || null;
+    const msgEl = document.getElementById('copyMsg');
+    if (!d){
+      msgEl.textContent = '先に「計算する」を押してください。';
+      return;
+    }
+    const lines = [];
+    lines.push(`[靴下編み計算機] ${d.VERSION}`);
+    lines.push(`端末：${d.device}`);
+    lines.push('--- 入力 ---');
+    for (const [k,v] of Object.entries(d.inputs)) lines.push(`${k}: ${v}`);
+    lines.push('--- 計算 ---');
+    for (const [k,v] of Object.entries(d.derived)) lines.push(`${k}: ${v}`);
+    lines.push('--- 症状 ---');
+    lines.push('ここに「何をしたらどうなったか」を1〜2行で書いてください');
+    const text = lines.join('\n');
+
+    try{
+      await navigator.clipboard.writeText(text);
+      msgEl.textContent = 'コピーしました。LINE/DMに貼り付けて送ってください。';
+    } catch(e){
+      // fallback
+      window.prompt('コピーできない場合は、ここを長押しして全選択→コピーしてください', text);
+      msgEl.textContent = 'コピーできない端末なので、表示された内容をコピーしてください。';
+    }
+  }
+
+  function init(){
+    document.getElementById('versionBadge').textContent = VERSION;
+    document.getElementById('useCustom').addEventListener('change', ()=>{
+      document.getElementById('customBox').classList.toggle('hide', !document.getElementById('useCustom').checked);
+      setGaugeHint();
+      compute();
+    });
+    document.getElementById('yarnWeight').addEventListener('change', ()=>{ setGaugeHint(); compute(); });
+    document.querySelectorAll('input[name="sockType"]').forEach(el=>el.addEventListener('change', ()=>{ toggleUtsuboSettings(); compute(); }));
+    document.querySelectorAll('input[name="method"]').forEach(el=>el.addEventListener('change', ()=>compute()));
+
+    ['footLength','ankleCirc','cuffLength','gSt','gRow','utsuboGussetPerSide','utsuboDoublePerSide'].forEach(id=>{
+      const el=document.getElementById(id);
+      if (el) el.addEventListener('input', ()=>{});
+    });
+
+    document.getElementById('calcBtn').addEventListener('click', compute);
+    document.getElementById('copyBugBtn').addEventListener('click', copyBugReport);
+
+    toggleUtsuboSettings();
+    setGaugeHint();
+    compute();
+  }
+
+  init();
+</script>
+</body>
+</html>
